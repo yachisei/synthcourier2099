@@ -459,3 +459,8 @@ body.lowfx .mm-title .shimmer { filter: none; color: #fff; background: none; tex
 /* the other windows share the same angular frame */
 .auth-card, .set-card, .ach-card, .go-card, #pauseMenu { border-radius: 0 !important; box-shadow: none !important; clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
 @media (max-height: 520px) { #mainMenu.mm-card::after { display: none; } }
+
+/* Settings gear: bottom-left of the home panel on phones so it never covers the LOG IN button */
+@media (max-height: 520px) and (orientation: landscape) { .mm-gear { top: auto; bottom: 14px; left: 22px; right: auto; } }
+/* The gear must be placed against the whole panel, not the right-hand grid column */
+#mainMenu > .mm-gear { grid-column: auto !important; grid-row: auto !important; }
