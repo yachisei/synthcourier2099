@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SYNTHWAVE COURIER : 2099</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="theme-color" content="#030308">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="relative flex items-center justify-center w-full h-full bg-slate-950 overflow-hidden">
+
+    <div id="rotateHint">ROTATE YOUR PHONE TO LANDSCAPE FOR BEST PLAY</div>
+    <div id="joyBase"></div><div id="joyKnob"></div>
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0 block cursor-crosshair"></canvas>
+    <canvas id="menuBg"></canvas>
+
+    <!-- Visual CRT Scanline overlay -->
+    <div class="scanlines absolute inset-0 z-10 pointer-events-none opacity-30"></div>
+
+    <!-- HUD Layer (Active Game UI) -->
+    <div id="hud" class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 md:p-6 hidden">
+        <!-- Top Status Bar -->
+        <div class="flex flex-wrap items-start justify-between gap-4 w-full">
+            <!-- Health, Shield, Fuel & Engine Heat Gauges -->
+            <div class="flex flex-col gap-2 w-64 md:w-80 pointer-events-auto bg-slate-900/80 backdrop-blur-md p-3 rounded-xl border border-cyan-500/30">
+                <!-- Hull / Shield -->
+                <div>
+                    <div class="flex justify-between text-xs font-orbitron text-cyan-400 mb-1">
+                        <span><i class="fa-solid fa-shield-halved mr-1"></i> SHIELD / HULL</span>
+                        <span id="hudHullText">100 / 100</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-cyan-500/40">
+                        <div id="hudHullBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Fuel Gauge -->
+                <div>
+                    <div class="flex justify-between text-xs font-orbitron text-amber-400 mb-1">
+                        <span><i class="fa-solid fa-gas-pump mr-1"></i> FUEL LEVEL</span>
+                        <span id="hudFuelText">100%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-amber-500/40">
+                        <div id="hudFuelBar" class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Boost Gauge -->
+                <div>
+                    <div class="flex justify-between text-xs font-orbitron text-pink-400 mb-1">
+                        <span><i class="fa-solid fa-bolt mr-1"></i> HYPER BOOST</span>
+                        <span id="hudBoostText">100%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-pink-500/40">
+                        <div id="hudBoostBar" class="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Engine Heat Indicator -->
+                <div>
+                    <div class="flex justify-between text-xs font-orbitron text-red-400 mb-1">
+                        <span><i class="fa-solid fa-fire-flame-curved mr-1"></i> ENGINE HEAT</span>
+                        <span id="hudHeatText">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-red-500/40">
+                        <div id="hudHeatBar" class="h-full bg-gradient-to-r from-orange-500 to-red-600 transition-all duration-150" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Mission / Contract Box -->
+            <div id="missionCard" class="flex flex-col bg-slate-900/80 backdrop-blur-md p-3 px-5 rounded-xl border border-pink-500/40 text-center pointer-events-auto min-w-[240px]">
+                <div class="text-xs font-orbitron tracking-widest text-pink-400 uppercase">ACTIVE CONTRACT</div>
+                <div id="contractTitle" class="text-base md:text-lg font-orbitron font-bold text-white glow-pink my-0.5">SEARCHING...</div>
+                <div class="flex justify-center items-center gap-4 text-xs font-semibold text-slate-300">
+                    <span id="contractReward" class="text-amber-400"><i class="fa-solid fa-coins mr-1"></i>+500 CR</span>
+                    <span id="contractTimer" class="text-cyan-400"><i class="fa-solid fa-clock mr-1"></i>60s</span>
+                </div>
+            </div>
+
+            <!-- Credits & Mode Settings -->
+            <div class="flex flex-col items-end gap-2 pointer-events-auto">
+                <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md p-3 rounded-xl border border-amber-500/30">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+                    <div class="text-right">
+                        <div class="text-[10px] font-orbitron text-slate-400 uppercase">SCORE</div>
+                        <div id="hudScore" class="text-xl md:text-2xl font-orbitron font-bold text-white leading-none">0</div>
+                        <div id="hudCredits" class="text-xs font-orbitron font-bold text-amber-300 mt-1">0 CR</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="togglePhysicsBtn" class="bg-slate-900/80 hover:bg-slate-800 text-cyan-400 px-3 py-1.5 rounded-lg border border-cyan-500/40 font-orbitron text-xs transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-compass"></i> <span id="physicsModeLabel">ZERO-G: ON</span>
+                    </button>
+                    <button id="autoFireBtn" class="bg-slate-900/80 hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-600/60 font-orbitron text-xs transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye"></i> <span id="autoFireLabel">AUTO-FIRE: OFF</span>
+                    </button>
+                    <button id="pauseBtn" class="bg-slate-900/80 hover:bg-cyan-900/50 text-cyan-400 px-3 py-1.5 rounded-lg border border-cyan-500/40 font-orbitron text-xs transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-pause"></i> [ESC]
+                    </button>
+                </div>
+                <button id="abilityChip" class="ability-chip"></button>
+            </div>
+        </div>
+
+        <div id="puBar"></div>
+        <!-- Bottom Navigation & Interactive Radar Minimap -->
+        <div class="flex items-end justify-between w-full">
+            <!-- Dynamic Navigation Compass -->
+            <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md p-3 rounded-xl border border-cyan-500/30 pointer-events-auto">
+                <div id="navArrow" class="w-8 h-8 flex items-center justify-center text-cyan-400 text-xl transition-transform duration-100">
+                    <i class="fa-solid fa-location-arrow"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] font-orbitron text-slate-400">WAYPOINT VECTOR</div>
+                    <div id="navDistance" class="text-sm font-orbitron font-semibold text-cyan-300">0 m</div>
+                </div>
+            </div>
+
+            <!-- Touch Controls for Mobile -->
+            <div id="touchControls" class="grid-cols-2 gap-2 pointer-events-auto opacity-90">
+                <button id="touchAbility" class="tbtn bg-amber-600/80 border border-amber-300">ABILITY</button>
+                <button id="touchMine" class="tbtn bg-fuchsia-700/80 border border-fuchsia-300">MINE</button>
+                <button id="touchShield" class="tbtn bg-sky-600/80 border border-sky-300">SHIELD</button>
+                <button id="touchBoost" class="tbtn bg-pink-600/80 border border-pink-300">BOOST</button>
+                <button id="touchShoot" class="tbtn bg-cyan-600/80 border border-cyan-300">FIRE</button>
+            </div>
+
+            <!-- Interactive Dynamic Minimap -->
+            <div class="relative w-36 h-36 md:w-48 md:h-48 bg-slate-950/90 rounded-xl border border-cyan-500/40 overflow-hidden pointer-events-auto shadow-2xl box-glow-cyan">
+                <canvas id="minimapCanvas" width="192" height="192" class="w-full h-full block"></canvas>
+                <div class="absolute top-1 left-2 text-[9px] font-orbitron text-cyan-400/80 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> RADAR
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu Overlay -->
+    <div id="mainMenu" class="mm-card absolute z-30 flex flex-col items-center w-full max-w-md p-6 rounded-2xl text-center m-4">
+        <button id="settingsBtn" class="mm-gear" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
+        <div class="mm-head flex flex-col items-center">
+        <img src="favicon.svg" alt="" class="mm-logo w-14 h-14 mb-2 rounded-xl">
+        <h1 class="mm-title font-orbitron font-black leading-none">
+            <span class="block text-4xl md:text-5xl tracking-[0.12em] text-white glow-cyan shimmer">SYNTHWAVE</span>
+            <span class="flex items-center justify-center gap-3 mt-1">
+                <span class="text-2xl md:text-3xl tracking-[0.35em] text-cyan-300">COURIER</span>
+                <span class="px-2 py-0.5 text-lg md:text-xl rounded border border-amber-400 text-amber-400">2099</span>
+            </span>
+        </h1>
+        <p class="mm-tag text-slate-500 text-sm mt-4 mb-4">Developed by : @senz</p>
+        </div>
+
+        <div class="w-full flex items-center gap-3 p-2.5 mb-4 rounded-xl bg-slate-950/70 border border-slate-800">
+            <div id="accAvatar" class="w-10 h-10 shrink-0 rounded-full bg-slate-800 border border-cyan-500/60 flex items-center justify-center font-orbitron font-bold text-cyan-300">G</div>
+            <div class="flex-1 text-left leading-tight min-w-0">
+                <div id="accName" class="font-orbitron font-bold text-sm text-white truncate">GUEST</div>
+                <div class="flex items-center gap-2"><span id="accRank" class="text-[10px] font-orbitron text-slate-400">ROOKIE · LV 1</span><span id="accBest" class="text-xs text-amber-400">BEST 0</span></div>
+                <div class="xpbar"><i id="accXp"></i></div>
+            </div>
+            <button id="accBtn" class="px-3 py-1.5 text-xs font-orbitron rounded-lg border border-pink-500/60 text-pink-300 hover:bg-pink-500/10">LOG IN</button>
+        </div>
+
+        <div id="dailyStrip" class="w-full flex items-center gap-2 px-3 py-2 mb-3 rounded-xl text-left">
+            <i class="fa-solid fa-calendar-day text-amber-300"></i>
+            <div class="flex-1 min-w-0"><div class="text-[10px] font-orbitron text-amber-300 tracking-widest">DAILY CHALLENGE</div><div id="dailyText" class="text-xs text-slate-200 truncate">...</div></div>
+            <span id="dailyState" class="text-[10px] font-orbitron whitespace-nowrap"></span>
+        </div>
+        <button id="startGameBtn" class="mm-launch w-full py-4 mb-3 whitespace-nowrap bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 font-orbitron font-bold text-lg tracking-widest text-slate-950 rounded-xl transition-transform hover:scale-[1.02] active:scale-95">
+            <i class="fa-solid fa-play mr-2"></i> LAUNCH MISSION
+        </button>
+        <div class="grid grid-cols-2 gap-3 w-full">
+            <button id="openHangarBtn" class="py-2.5 whitespace-nowrap rounded-xl border border-pink-500/60 text-pink-300 hover:bg-pink-500/10 font-orbitron font-bold text-sm transition-colors"><i class="fa-solid fa-rocket mr-2"></i>HANGAR</button>
+            <button id="scoresBtn" class="py-2.5 whitespace-nowrap rounded-xl border border-amber-500/60 text-amber-300 hover:bg-amber-500/10 font-orbitron font-bold text-sm transition-colors"><i class="fa-solid fa-trophy mr-2"></i>HIGH SCORES</button>
+        </div>
+
+        <button id="achBtn" class="w-full mt-3 py-2.5 whitespace-nowrap rounded-xl border border-purple-500/60 text-purple-300 hover:bg-purple-500/10 font-orbitron font-bold text-sm transition-colors"><i class="fa-solid fa-medal mr-2"></i>ACHIEVEMENTS <span id="achCount" class="text-purple-200/70 ml-1">0/18</span></button>
+
+        <details id="ctrlBox" class="w-full mt-4 text-left text-xs text-slate-300">
+            <summary class="cursor-pointer text-center font-orbitron text-slate-400 hover:text-cyan-300 select-none">CONTROLS</summary>
+            <div class="mt-2 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                <div class="kbd-only"><div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    <div><b class="text-pink-400">W / UP</b> Main thrusters</div><div><b class="text-pink-400">S / DOWN</b> Retro thrusters</div>
+                    <div><b class="text-pink-400">A / D</b> Lateral thrusters</div><div><b class="text-pink-400">SHIFT / SPACE</b> Hyper boost</div>
+                    <div><b class="text-pink-400">MOUSE</b> Aim</div><div><b class="text-pink-400">CLICK / J</b> Lasers (hold)</div>
+                    <div class="col-span-2"><b class="text-pink-400">P</b> Pause &nbsp; <b class="text-pink-400">M</b> Mute &nbsp; <b class="text-pink-400">E</b> Shield &nbsp; <b class="text-pink-400">Q</b> Mine</div>
+                </div></div>
+                <div class="touch-only space-y-1">
+                    <div><b class="text-pink-400">LEFT THUMB</b> Drag to steer + thrust</div>
+                    <div><b class="text-pink-400">RIGHT SCREEN</b> Touch to aim and fire</div>
+                    <div><b class="text-pink-400">BUTTONS</b> Boost, Fire, Shield, Mine</div>
+                </div>
+            </div>
+            <button id="installBtn" class="hidden mt-2 w-full py-1.5 rounded-lg border border-cyan-500/60 text-cyan-300 text-[11px] font-orbitron hover:bg-cyan-500/10"><i class="fa-solid fa-download mr-1"></i>INSTALL APP (PLAYS OFFLINE)</button>
+    <div class="grid grid-cols-2 gap-2 mt-2"><button id="exportBtn" class="py-1.5 rounded-lg border border-slate-600 text-slate-300 text-[11px] font-orbitron hover:bg-slate-800"><i class="fa-solid fa-file-export mr-1"></i>EXPORT SAVE</button><button id="importBtn" class="py-1.5 rounded-lg border border-slate-600 text-slate-300 text-[11px] font-orbitron hover:bg-slate-800"><i class="fa-solid fa-file-import mr-1"></i>IMPORT SAVE</button></div>
+    <button id="resetBtn" class="mt-2 w-full py-1.5 rounded-lg border border-red-500/50 text-red-300 text-[11px] font-orbitron hover:bg-red-500/10">RESET MY PROGRESS</button>
+    <button id="replayTutBtn" class="mt-2 w-full py-1.5 rounded-lg border border-slate-600 text-slate-300 text-[11px] font-orbitron hover:bg-slate-800">REPLAY TUTORIAL</button>
+        </details>
+    </div>
+
+    <!-- Expanded Hangar & Ship Skins Customization Screen -->
+    <div id="hangarMenu" class="absolute z-30 hidden flex-col w-full max-w-4xl p-6 bg-slate-900/95 backdrop-blur-xl rounded-2xl box-glow-pink border border-pink-500/50 m-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 border-b border-pink-500/30 pb-3">
+            <div>
+                <h2 class="text-2xl font-orbitron font-bold text-pink-400 glow-pink">SHIP HANGAR & CUSTOMIZATION</h2>
+                <p class="text-xs text-slate-400">Unlock unique craft skins, adjust thruster trail colors, and upgrade core systems</p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-xl border border-amber-500/40">
+                <i class="fa-solid fa-wallet text-amber-400"></i>
+                <span id="shopCreditsText" class="font-orbitron font-bold text-amber-300">0 CR</span>
+            </div>
+        </div>
+
+        <!-- Customization Tabs -->
+        <div class="flex border-b border-slate-800 mb-4 gap-4">
+            <button id="tabSkins" class="pb-2 font-orbitron text-sm font-bold text-cyan-400 border-b-2 border-cyan-400">SHIP SKINS (30)</button>
+            <button id="tabUpgrades" class="pb-2 font-orbitron text-sm font-bold text-slate-400 hover:text-cyan-400">SYSTEM UPGRADES</button>
+            <button id="tabTrails" class="pb-2 font-orbitron text-sm font-bold text-slate-400 hover:text-cyan-400">THRUSTER TRAILS</button>
+        </div>
+
+        <!-- Section 1: Ship Skins Grid -->
+        <div id="skinsPanel" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <!-- 12 Dynamic Skin Cards generated via JS -->
+        </div>
+
+        <!-- Section 2: Upgrades Panel (Hidden by default) -->
+        <div id="upgradesPanel" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- upgrade cards are built by buildUpgrades() in game.js -->
+        </div>
+
+        <!-- Section 3: Trail Customization Panel (Hidden by default) -->
+        <div id="trailsPanel" class="hidden flex flex-col gap-4 mb-6">
+            <div class="text-xs text-slate-400 font-orbitron">SELECT THRUSTER TRAIL COLOR SCHEME</div>
+            <div id="trailColorsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <!-- Color options populate dynamically -->
+            </div>
+        </div>
+
+        <button id="closeHangarBtn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 font-orbitron font-bold text-slate-200 rounded-xl transition-all">
+            RETURN TO MENU
+        </button>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pauseMenu" class="absolute z-30 hidden flex-col items-center justify-center w-full max-w-md p-6 bg-slate-900/90 backdrop-blur-xl rounded-2xl box-glow-cyan border border-cyan-500/50 text-center m-4">
+        <h2 class="text-3xl font-orbitron font-bold text-cyan-400 glow-cyan mb-2">FLIGHT PAUSED</h2>
+        <p class="text-xs text-slate-400 mb-5">Ship systems placed in hold state.</p>
+        
+        <div class="flex flex-col gap-3 w-full"> <button id="resumeBtn" class="py-3 bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-slate-950 rounded-xl transition-all">RESUME FLIGHT</button>
+            <button id="pauseSettingsBtn" class="py-2 bg-slate-800/70 hover:bg-slate-700 font-orbitron text-xs text-slate-300 rounded-xl transition-all"><i class="fa-solid fa-gear mr-2"></i>SETTINGS</button>
+            <button id="quitBtn" class="py-3 bg-slate-800 hover:bg-slate-700 font-orbitron font-bold text-slate-300 rounded-xl transition-all">ABORT TO MENU</button>
+        </div>
+    </div>
+
+    <!-- Game Over / Mission Failed Overlay -->
+    <div id="authMenu" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-2">
+        <div class="auth-card w-full max-w-sm p-6 rounded-2xl text-center">
+            <img src="favicon.svg" alt="" class="w-12 h-12 mx-auto mb-2 rounded-xl">
+            <h2 id="authTitle" class="font-orbitron text-xl font-bold tracking-widest text-white mb-4">PILOT ACCESS</h2>
+            <div class="grid grid-cols-2 mb-4 p-1 rounded-xl bg-slate-950 border border-slate-800 font-orbitron text-xs">
+                <button id="authTabLogin" class="py-2 rounded-lg">LOG IN</button>
+                <button id="authTabReg" class="py-2 rounded-lg">REGISTER</button>
+            </div>
+            <label class="block text-left text-[11px] font-orbitron text-slate-400 mb-1">PILOT NAME</label>
+            <div class="relative mb-3">
+                <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input id="authUser" autocomplete="username" maxlength="16" class="w-full pl-9 pr-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-sm outline-none focus:border-cyan-400">
+            </div>
+            <label class="block text-left text-[11px] font-orbitron text-slate-400 mb-1">PASSWORD</label>
+            <div class="relative mb-2">
+                <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input id="authPass" type="password" autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-sm outline-none focus:border-cyan-400">
+                <button id="authEye" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-300 text-xs"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <div id="authHint" class="text-left text-[10px] text-slate-500 mb-2 min-h-[14px]"></div>
+            <div id="authErr" class="text-xs text-pink-400 min-h-[16px] mb-2"></div>
+            <button id="authSubmit" class="w-full py-3 mb-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-orbitron font-bold tracking-widest text-sm">LOG IN</button>
+            <button id="authGuest" class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 font-orbitron text-xs">CONTINUE AS GUEST</button>
+            <p class="text-[10px] text-slate-500 mt-3">Accounts and scores are saved on this device only.</p>
+        </div>
+    </div>
+    <div id="leaderboardMenu" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-2">
+        <div class="w-full max-w-md p-5 bg-slate-900/95 rounded-2xl border border-amber-500/50">
+            <h2 class="font-orbitron text-2xl font-bold text-amber-400 mb-3 text-center">HIGH SCORES</h2>
+            <div id="lbList" class="text-sm mb-3 "></div>
+            <button id="lbClose" class="w-full py-2 rounded-lg bg-slate-800 text-slate-200 font-orbitron font-bold text-sm">CLOSE</button>
+        </div>
+    </div>
+    <div id="achToasts"></div>
+    <div id="tutCard" class="hidden">
+        <div class="flex items-center justify-between mb-1"><span id="tutStep" class="tut-step">STEP 1 / 6</span><button id="tutSkip" class="tut-skip">SKIP</button></div>
+        <div id="tutTitle" class="tut-title">MOVE</div>
+        <div id="tutText" class="tut-text"></div>
+        <div class="tut-bar"><i id="tutBar"></i></div>
+    </div>
+    <div id="backupMenu" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-2">
+        <div class="auth-card w-full max-w-md p-5 rounded-2xl">
+            <h2 id="backupTitle" class="font-orbitron text-xl font-bold text-cyan-300 mb-1">EXPORT SAVE</h2>
+            <p id="backupHelp" class="text-xs text-slate-400 mb-2"></p>
+            <textarea id="backupText" rows="5" spellcheck="false" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-slate-200 font-mono outline-none focus:border-cyan-400" style="user-select:text;-webkit-user-select:text"></textarea>
+            <div id="backupMsg" class="text-xs min-h-[16px] my-1"></div>
+            <div class="flex gap-2"><button id="backupCopy" class="flex-1 py-2 rounded-lg bg-cyan-600 text-slate-950 font-orbitron font-bold text-xs">COPY CODE</button><button id="backupRestore" class="flex-1 py-2 rounded-lg bg-pink-600 text-white font-orbitron font-bold text-xs hidden">RESTORE</button><button id="backupClose" class="flex-1 py-2 rounded-lg bg-slate-800 text-slate-200 font-orbitron font-bold text-xs">CLOSE</button></div>
+        </div>
+    </div>
+    <div id="settingsMenu" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-2">
+        <div class="set-card w-full max-w-md p-5 rounded-2xl">
+            <h2 class="font-orbitron text-xl font-bold text-cyan-300 mb-3"><i class="fa-solid fa-gear mr-2"></i>SETTINGS</h2>
+            <div class="set-list">
+                <div class="set-sec">AUDIO</div>
+                <label class="flex justify-between items-center">VOLUME <input id="volSlider" type="range" min="0" max="100" value="80" class="w-40"></label>
+                <label class="flex justify-between items-center">MUSIC <input id="musicSlider" type="range" min="0" max="100" value="100" class="w-40"></label>
+                <div class="set-sec">GAMEPLAY</div>
+                <label class="flex justify-between items-center">DIFFICULTY <select id="diffSel" class="bg-slate-800 text-cyan-300 rounded px-2 py-1"><option value="0.7">EASY</option><option value="1" selected>NORMAL</option><option value="1.4">HARD</option></select></label>
+                <label class="flex justify-between items-center">AUTO-FIRE <input id="setAutofire" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <label class="flex justify-between items-center">ACHIEVEMENT POP-UPS <input id="setPopups" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <div class="set-sec">CONTROLS &amp; FEEL</div>
+                <label class="flex justify-between items-center">LEFT-HANDED <input id="setLefty" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <label class="flex justify-between items-center">VIBRATION <input id="setVibrate" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <label class="flex justify-between items-center">SCREEN SHAKE <input id="setShake" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <div class="set-sec">DISPLAY</div>
+                <label class="flex justify-between items-center">LOW EFFECTS <input id="setLowfx" type="checkbox" class="accent-cyan-400 w-5 h-5"></label>
+                <button id="fsBtn" class="set-fs"><i class="fa-solid fa-expand mr-2"></i>FULLSCREEN</button>
+            </div>
+            <button id="setClose" class="w-full mt-4 py-2.5 rounded-xl bg-cyan-600 text-slate-950 font-orbitron font-bold text-sm">DONE</button>
+        </div>
+    </div>
+    <div id="achMenu" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-2">
+        <div class="ach-card w-full max-w-2xl p-5 rounded-2xl">
+            <div class="flex items-end justify-between mb-3"><h2 class="font-orbitron text-2xl font-bold text-purple-300">ACHIEVEMENTS</h2><span id="achHead" class="text-xs font-orbitron text-slate-400">0 / 18 UNLOCKED</span></div>
+            <div id="achList" class="ach-list"></div>
+            <button id="achClose" class="w-full mt-3 py-2 rounded-lg bg-slate-800 text-slate-200 font-orbitron font-bold text-sm">CLOSE</button>
+        </div>
+    </div>
+    <div id="gameOverMenu" class="go-card absolute z-30 hidden flex-col items-center w-full max-w-md p-5 rounded-2xl text-center m-4">
+        <div class="go-left">
+            <div class="go-kicker"><i class="fa-solid fa-triangle-exclamation"></i> MISSION REPORT</div>
+            <h2 id="gameOverTitle" class="go-title">CRITICAL DESTROYED</h2>
+            <div class="go-scorelabel">SCORE</div>
+            <div id="goScore" class="go-score">0</div>
+            <div id="goBadge" class="go-badge"></div>
+            <p id="gameOverSub" class="go-sub"></p>
+        </div>
+        <div class="go-right">
+            <div class="go-stats">
+                <div><i class="fa-solid fa-box text-cyan-400"></i><b id="endContracts">0</b><span>CONTRACTS</span></div>
+                <div><i class="fa-solid fa-coins text-amber-400"></i><b id="endCredits">+0 CR</b><span>CREDITS</span></div>
+                <div><i class="fa-solid fa-road text-pink-400"></i><b id="endDistance">0 km</b><span>DISTANCE</span></div>
+            </div>
+            <div class="go-xp">
+                <div class="go-xp-head"><span id="goRank">ROOKIE &middot; LV 1</span><span id="goXpGain">+0 XP</span></div>
+                <div class="xpbar"><i id="goXpBar"></i></div>
+            </div>
+            <div id="goUnlocks" class="go-unlocks"></div>
+            <button id="restartBtn" class="go-primary"><i class="fa-solid fa-rotate-right mr-2"></i>REDEPLOY COURIER</button>
+            <div class="go-row">
+                <button id="goMenuBtn"><i class="fa-solid fa-house mr-1"></i>MAIN MENU</button>
+                <button id="goShareBtn"><i class="fa-solid fa-share-nodes mr-1"></i>SHARE SCORE</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="features.js"></script>
+    <script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
+    <script src="game.js"></script>
+</body>
+</html>
