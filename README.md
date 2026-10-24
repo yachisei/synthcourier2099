@@ -10,7 +10,7 @@ No build step, no server and no dependencies to install. It is plain HTML, CSS a
 
 **Play online**
 
-Play the game directly via GitHub: [Play Synthwave Courier on GitHub](https://github.com/your-username/synthwave-courier) *(Replace this placeholder with your actual GitHub repository or GitHub Pages link)*.
+Play the game directly via GitHub: [Play Synthwave Courier on GitHub](https://yachisei.github.io/synthcourier2099)**.
 
 An internet connection is needed on the first load, because Tailwind CSS, Font Awesome and Google Fonts are loaded from CDNs. HTTPS is required for the install and offline features.
 
