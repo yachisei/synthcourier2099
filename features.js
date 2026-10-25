@@ -321,7 +321,7 @@ const Tut = (() => {
     const chk = t => { let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h.toString(36); };
     const makeCode = () => {
         saveGameData(); const raw = localStorage.getItem(Auth.saveKey()) || '{}';
-        const b = btoa(unescape(encodeURIComponent(JSON.stringify({ v: 1, n: Auth.user || 'guest', t: Date.now(), d: raw }))));
+        const b = btoa(unescape(encodeURIComponent(JSON.stringify({ v: 1, n: Auth.user || 'guest', t: Date.now(), d: raw, sc: Auth.myScores(10) }))));
         return 'SC1.' + b + '.' + chk(b);
     };
     const readCode = code => {
@@ -349,7 +349,9 @@ const Tut = (() => {
         try {
             const o = readCode(bt.value);
             if (!confirm('Replace the progress of ' + (Auth.user || 'Guest') + ' with this save? This cannot be undone.')) return;
-            localStorage.setItem(Auth.saveKey(), o.d); loadSaveData(); msg('Save restored!', true);
+            localStorage.setItem(Auth.saveKey(), o.d); loadSaveData();
+            const n = Auth.importScores(o.sc); $('accBest').textContent = 'BEST ' + Auth.best();
+            msg('Save restored!' + (n ? ' ' + n + ' high score' + (n > 1 ? 's' : '') + ' added.' : ''), true);
         } catch (e) { msg(e.message || 'Could not read that code.', false); }
     };
     $('backupClose').onclick = () => show('backupMenu', false);

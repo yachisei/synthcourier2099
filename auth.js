@@ -53,6 +53,20 @@ const Auth = (() => {
             for (const e of ld(L, [])) { if (!seen.has(e.u)) { seen.add(e.u); out.push(e); } if (out.length >= n) break; }
             return out;
         },
+        // This pilot's best runs (used by Export Save) and the matching import
+        myScores(n = 10) { const me = user || 'Guest'; return ld(L, []).filter(e => e.u === me).slice(0, n); },
+        importScores(list) {
+            if (!Array.isArray(list)) return 0;
+            const me = user || 'Guest', all = ld(L, []), have = new Set(all.filter(e => e.u === me).map(e => e.s + ':' + e.t));
+            let added = 0;
+            list.slice(0, 20).forEach(e => {
+                if (e && typeof e.s === 'number' && e.s > 0 && !have.has(Math.floor(e.s) + ':' + e.t)) {
+                    all.push({ u: me, s: Math.floor(e.s), c: e.c | 0, d: e.d | 0, l: e.l | 0 || 1, t: +e.t || Date.now() }); added++;
+                }
+            });
+            all.sort((a, b) => b.s - a.s); localStorage.setItem(L, JSON.stringify(all.slice(0, 50)));
+            return added;
+        },
         position() { const me = user || 'Guest', t = this.top(100), i = t.findIndex(e => e.u === me); return { pos: i + 1, total: t.length }; },
         best() { const me = user || 'Guest'; return Math.max(0, ...ld(L, []).filter(e => e.u === me).map(e => e.s)); }
     };
