@@ -402,6 +402,7 @@ function drawStars(){ctx.save();ctx.fillStyle='#fff';const w=canvas.width,h=canv
                     console.error("Save load error", e);
                 }
             }
+            if (Auth.isAdmin) { credits = Math.max(credits, 99999999); Tut.load(true); }   // admin pilot: always rich, no tutorial
         }
 
         function saveGameData() {
@@ -1702,8 +1703,8 @@ if ((gameState === 'PLAYING' || gameState === 'PAUSED') && trailPts.length > 1 &
             // animated score
             const sEl = $('goScore'), t0 = performance.now(); (function tick(t) { const k = Math.min(1, (t - t0) / 1100); sEl.textContent = Math.round(score * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); })(t0);
             const badge = $('goBadge'); badge.className = 'go-badge' + (sc.isNew ? ' new' : '');
-            badge.textContent = sc.isNew ? '\u2605 NEW HIGH SCORE \u2605' : 'HIGH SCORE ' + sc.best;
-            $('gameOverSub').textContent = (pos.total > 1 ? `#${pos.pos} of ${pos.total} pilots on this device \u00b7 ` : '') + (nb ? `New record: ${bestContracts} contracts` : `Best run: ${bestContracts} contracts`);
+            badge.textContent = sc.admin ? 'ADMIN RUN \u2022 NOT RANKED' : sc.isNew ? '\u2605 NEW HIGH SCORE \u2605' : 'HIGH SCORE ' + sc.best;
+            $('gameOverSub').textContent = (pos.pos > 0 && pos.total > 1 ? `#${pos.pos} of ${pos.total} pilots on this device \u00b7 ` : '') + (nb ? `New record: ${bestContracts} contracts` : `Best run: ${bestContracts} contracts`);
             // XP bar fills from where it was to where it is now
             $('goRank').textContent = rk[1] + ' \u00b7 LV ' + post.level + (leveled ? '  \u2191 LEVEL UP!' : ''); $('goRank').style.color = rk[2];
             $('goXpGain').textContent = '+' + xpGain + ' XP';

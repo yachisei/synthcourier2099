@@ -2,6 +2,10 @@
 const Auth = (() => {
     const U = 'sc_users', S = 'sc_session', L = 'sc_scores', BASE = 'neon_cargo_rush_v2';
     const ld = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (e) { return d; } };
+    // ---- Admin pilot for testing: log in as "admin" to get a huge credit balance. Scores from admin runs are not ranked. ----
+    // To change the password, replace ADMIN_HASH with SHA-256 of  ADMIN_SALT + ':' + yourPassword  (see README).
+    const ADMIN = 'admin', ADMIN_SALT = 'sc-admin-v1', ADMIN_HASH = 'f42dedac0780c14e35c7aecb77337577635997f8021e5511e743f25334276f59';
+    { const all = ld(U, {}); if (!all[ADMIN] || all[ADMIN].hash !== ADMIN_HASH) { all[ADMIN] = { salt: ADMIN_SALT, hash: ADMIN_HASH }; localStorage.setItem(U, JSON.stringify(all)); } }
     let user = null;
     const sess = localStorage.getItem(S);
     if (sess && sess !== 'guest' && ld(U, {})[sess]) user = sess;
@@ -19,6 +23,7 @@ const Auth = (() => {
 
     return {
         get user() { return user; },
+        get isAdmin() { return user === ADMIN; },
         get hasChosen() { return !!localStorage.getItem(S); },
         saveKey() { return user ? BASE + ':u:' + user : BASE; },
         async register(name, pw) {
@@ -40,6 +45,7 @@ const Auth = (() => {
         guest() { user = null; localStorage.setItem(S, 'guest'); },
         logout() { user = null; localStorage.removeItem(S); },
         addScore(score, contracts, dist, lvl) {
+            if (user === ADMIN) return { prev: 0, isNew: false, best: score, admin: true };   // admin runs are not ranked
             const all = ld(L, []), me = user || 'Guest';
             const prev = Math.max(0, ...all.filter(e => e.u === me).map(e => e.s));
             all.push({ u: me, s: score, c: contracts, d: dist, l: lvl || 1, t: Date.now() });
@@ -50,7 +56,7 @@ const Auth = (() => {
         // Best run per player, highest first
         top(n = 5) {
             const seen = new Set(), out = [];
-            for (const e of ld(L, [])) { if (!seen.has(e.u)) { seen.add(e.u); out.push(e); } if (out.length >= n) break; }
+            for (const e of ld(L, [])) { if (e.u !== ADMIN && !seen.has(e.u)) { seen.add(e.u); out.push(e); } if (out.length >= n) break; }
             return out;
         },
         // This pilot's best runs (used by Export Save) and the matching import
