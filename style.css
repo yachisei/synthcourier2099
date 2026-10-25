@@ -464,3 +464,9 @@ body.lowfx .mm-title .shimmer { filter: none; color: #fff; background: none; tex
 @media (max-height: 520px) and (orientation: landscape) { .mm-gear { top: auto; bottom: 14px; left: 22px; right: auto; } }
 /* The gear must be placed against the whole panel, not the right-hand grid column */
 #mainMenu > .mm-gear { grid-column: auto !important; grid-row: auto !important; }
+
+/* Home panel: draw the dark fill and the gradient border on the panel itself, so they stay put when the panel scrolls
+   (the old pseudo-element fill scrolled away and exposed the bright border gradient underneath) */
+#mainMenu.mm-card { border: 1px solid transparent !important;
+    background: linear-gradient(180deg, #090d1c, #040610) padding-box, linear-gradient(135deg, rgba(34,211,238,.8), rgba(244,114,182,.5)) border-box; }
+#mainMenu.mm-card::before { display: none; }
